@@ -23,4 +23,8 @@ export $(grep -v '^#' .env | xargs) && clearml-agent daemon --queue default
 poetry export -f requirements.txt --output requirements.txt --without-hashes
 ```
 
-clearml-agent execute --id aec7f28b782a4459ac8969de3aef262b --standalone
+<!-- clearml-agent execute --id aec7f28b782a4459ac8969de3aef262b --standalone -->
+
+
+rm -rf ~/.clearml/venvs-cache
+rm -rf ~/.clearml/venvs-builds*

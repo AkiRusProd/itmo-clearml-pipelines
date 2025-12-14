@@ -5,13 +5,22 @@ from clearml import Task, PipelineDecorator, Dataset, OutputModel
 # Загрузка переменных окружения
 load_dotenv()
 
+try:
+    with open("requirements.txt", "r") as f:
+        # filter(None, ...) удаляет пустые строки
+        PIPELINE_PACKAGES = list(filter(None, f.read().splitlines()))
+except FileNotFoundError:
+    # Фоллбек, если файла нет, но лучше чтобы он был
+    PIPELINE_PACKAGES = ['numpy<2.0', 'pandas', 'scikit-learn', 'clearml', 'python-dotenv']
+
 # --- ШАГ 1: ПОДГОТОВКА ДАННЫХ ---
 # Добавили кэширование. Если данные те же, шаг пропустится (экономия времени)
 @PipelineDecorator.component(
     return_values=['X_train', 'X_test', 'y_train', 'y_test'], 
     cache=True,
     task_type=Task.TaskTypes.data_processing,
-    execution_queue='default'
+    execution_queue='default',
+    packages=PIPELINE_PACKAGES
 )
 def step_process_data(dataset_project: str, dataset_name: str, local_path: str = None, test_size: float = 0.2, random_state: int = 42):
     import pandas as pd
@@ -67,7 +76,8 @@ def step_process_data(dataset_project: str, dataset_name: str, local_path: str =
     cache=True,
     task_type=Task.TaskTypes.training,
     retry_on_failure=True,     # Автоматический перезапуск при ошибке
-    execution_queue='default'
+    execution_queue='default',
+    packages=PIPELINE_PACKAGES,
 )
 def step_train_model(X_train: pd.DataFrame, y_train: pd.Series, n_estimators: int = 100):
     from sklearn.ensemble import RandomForestClassifier
@@ -79,7 +89,7 @@ def step_train_model(X_train: pd.DataFrame, y_train: pd.Series, n_estimators: in
     return model
 
 # --- ШАГ 3: ВАЛИДАЦИЯ ---
-@PipelineDecorator.component(return_values=['accuracy'], cache=False, task_type=Task.TaskTypes.qc, execution_queue='default')
+@PipelineDecorator.component(return_values=['accuracy'], cache=False, task_type=Task.TaskTypes.qc, execution_queue='default', packages=PIPELINE_PACKAGES)
 def step_evaluate_model(model: object, X_test: pd.DataFrame, y_test: pd.Series):
     from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
     from clearml import Task
@@ -136,7 +146,8 @@ def step_evaluate_model(model: object, X_test: pd.DataFrame, y_test: pd.Series):
     return_values=['deploy_status'], 
     task_type=Task.TaskTypes.custom, 
     cache=False,
-    execution_queue='default'
+    execution_queue='default', 
+    packages=PIPELINE_PACKAGES
 )
 def step_deploy_model(model, accuracy, min_threshold: float, version: str = "latest"):
     import os
@@ -182,6 +193,7 @@ def step_deploy_model(model, accuracy, min_threshold: float, version: str = "lat
     project='Telco_Churn', 
     version='2.0.1',
     pipeline_execution_queue='default',
+    packages=PIPELINE_PACKAGES
 )
 def run_pipeline(
     dataset_local_path,
@@ -242,7 +254,6 @@ if __name__ == '__main__':
         rf_n_estimators=150,
         min_accuracy_threshold=0.78
     )
-    pipeline_obj.set_packages("./requirements.txt") 
     
     # ВАЖНО: Раскомментируй эту строку, чтобы отправить задачу Агенту!
     pipeline_obj.start(queue='default') 
