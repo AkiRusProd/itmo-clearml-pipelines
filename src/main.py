@@ -257,6 +257,6 @@ if __name__ == '__main__':
     
     # ВАЖНО: Раскомментируй эту строку, чтобы отправить задачу Агенту!
     # pipeline_obj.start(queue='default') 
-    pipeline_obj.start() 
+    # pipeline_obj.start() 
     
     print("Pipeline submitted to queue 'default'. Check ClearML Dashboard!")

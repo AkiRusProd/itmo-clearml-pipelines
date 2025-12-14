@@ -5,6 +5,28 @@
 </a>
 
 A short description of the project.
+
+
+Обязательно создаем 2 очереди default и services.
+
+1. Открой ClearML UI: http://localhost:8080
+2. Перейди: Workers & Queues → Queues
+3. Нажми ➕ New Queue
+4. Результат должен быть таким
+    ![img](images/queues.png)
+
+5. Далее в двух разных сессиях:
+    ```
+    export $(grep -v '^#' .env | xargs) && clearml-agent daemon --queue default --foreground
+    ```
+
+    ```
+    export $(grep -v '^#' .env | xargs) && clearml-agent daemon --queue services --foreground
+    ```
+
+
+
+# Trash
 ```
 export PYTHONUNBUFFERED=1
 clearml-agent daemon --queue default
@@ -30,3 +52,4 @@ rm -rf ~/.clearml/venvs-cache
 rm -rf ~/.clearml/venvs-builds*
 
 clearml-agent daemon --queue default --foreground
+
