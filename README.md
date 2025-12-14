@@ -28,3 +28,5 @@ poetry export -f requirements.txt --output requirements.txt --without-hashes
 
 rm -rf ~/.clearml/venvs-cache
 rm -rf ~/.clearml/venvs-builds*
+
+clearml-agent daemon --queue default --foreground

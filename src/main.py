@@ -192,8 +192,8 @@ def step_deploy_model(model, accuracy, min_threshold: float, version: str = "lat
     name='Churn Automation Pipeline', 
     project='Telco_Churn', 
     version='2.0.1',
-    pipeline_execution_queue='default',
-    packages=PIPELINE_PACKAGES
+    # pipeline_execution_queue='default',
+    # packages=PIPELINE_PACKAGES
 )
 def run_pipeline(
     dataset_local_path,
@@ -256,6 +256,7 @@ if __name__ == '__main__':
     )
     
     # ВАЖНО: Раскомментируй эту строку, чтобы отправить задачу Агенту!
-    pipeline_obj.start(queue='default') 
+    # pipeline_obj.start(queue='default') 
+    pipeline_obj.start() 
     
     print("Pipeline submitted to queue 'default'. Check ClearML Dashboard!")
