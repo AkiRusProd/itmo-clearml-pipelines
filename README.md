@@ -5,3 +5,10 @@
 </a>
 
 A short description of the project.
+```
+clearml-agent daemon --queue default
+```
+
+```
+export $(grep -v '^#' .env | xargs) && clearml-agent daemon --queue default
+```
