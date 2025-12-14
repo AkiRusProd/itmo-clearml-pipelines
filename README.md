@@ -12,3 +12,7 @@ clearml-agent daemon --queue default
 ```
 export $(grep -v '^#' .env | xargs) && clearml-agent daemon --queue default
 ```
+
+```
+poetry export -f requirements.txt --output requirements.txt --without-hashes
+```

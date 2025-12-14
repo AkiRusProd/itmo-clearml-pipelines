@@ -10,7 +10,8 @@ load_dotenv()
 @PipelineDecorator.component(
     return_values=['X_train', 'X_test', 'y_train', 'y_test'], 
     cache=True,
-    task_type=Task.TaskTypes.data_processing
+    task_type=Task.TaskTypes.data_processing,
+    execution_queue='default'
 )
 def step_process_data(dataset_project: str, dataset_name: str, local_path: str = None, test_size: float = 0.2, random_state: int = 42):
     import pandas as pd
@@ -65,7 +66,8 @@ def step_process_data(dataset_project: str, dataset_name: str, local_path: str =
     return_values=['model'], 
     cache=True,
     task_type=Task.TaskTypes.training,
-    retry_on_failure=True     # Автоматический перезапуск при ошибке
+    retry_on_failure=True,     # Автоматический перезапуск при ошибке
+    execution_queue='default'
 )
 def step_train_model(X_train: pd.DataFrame, y_train: pd.Series, n_estimators: int = 100):
     from sklearn.ensemble import RandomForestClassifier
@@ -77,7 +79,7 @@ def step_train_model(X_train: pd.DataFrame, y_train: pd.Series, n_estimators: in
     return model
 
 # --- ШАГ 3: ВАЛИДАЦИЯ ---
-@PipelineDecorator.component(return_values=['accuracy'], cache=False, task_type=Task.TaskTypes.qc)
+@PipelineDecorator.component(return_values=['accuracy'], cache=False, task_type=Task.TaskTypes.qc, execution_queue='default')
 def step_evaluate_model(model: object, X_test: pd.DataFrame, y_test: pd.Series):
     from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
     from clearml import Task
@@ -133,7 +135,8 @@ def step_evaluate_model(model: object, X_test: pd.DataFrame, y_test: pd.Series):
 @PipelineDecorator.component(
     return_values=['deploy_status'], 
     task_type=Task.TaskTypes.custom, 
-    cache=False
+    cache=False,
+    execution_queue='default'
 )
 def step_deploy_model(model, accuracy, min_threshold: float, version: str = "latest"):
     import os
