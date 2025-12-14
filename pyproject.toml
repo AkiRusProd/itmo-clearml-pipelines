@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "clearml-ml-pipelines"
+version = "0.1.0"
+description = ""
+authors = ["Rustam Akimov <akirusprod@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+clearml = "^2.0.2"
+python-dotenv = "^1.2.1"
+scikit-learn = "<1.4"
+pandas = "^2.3.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
