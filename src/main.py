@@ -192,6 +192,7 @@ def step_deploy_model(model, accuracy, min_threshold: float, version: str = "lat
     name='Churn Automation Pipeline', 
     project='Telco_Churn', 
     version='2.0.1',
+    run_locally=True
     # pipeline_execution_queue='default',
     # packages=PIPELINE_PACKAGES
 )
