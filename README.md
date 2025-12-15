@@ -6,6 +6,10 @@
 
 A short description of the project.
 
+<!-- https://clear.ml/docs/latest/docs/references/sdk/scheduler/ -->
+<!-- https://clear.ml/docs/latest/docs/references/sdk/trigger/ -->
+<!-- https://clear.ml/docs/latest/docs/webapp/applications/apps_trigger_manager/ -->
+<!-- https://clear.ml/docs/latest/docs/getting_started/task_trigger_schedule/ -->
 
 Обязательно создаем 2 очереди default и services.
 
