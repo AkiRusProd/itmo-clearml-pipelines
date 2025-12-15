@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from dotenv import load_dotenv
 from clearml import Task, PipelineDecorator
 
@@ -86,12 +87,16 @@ def step_process_data(
     packages=PIPELINE_PACKAGES,
 )
 def step_train_model(
-    X_train: pd.DataFrame, y_train: pd.Series, n_estimators: int = 100
+    X_train: pd.DataFrame, 
+    y_train: pd.Series, 
+    n_estimators: int = 100
 ):
     from sklearn.ensemble import RandomForestClassifier
 
-    print(f"Training Random Forest with {n_estimators} estimators...")
-    model = RandomForestClassifier(n_estimators=n_estimators, random_state=42)
+    model = RandomForestClassifier(
+        n_estimators=n_estimators, 
+        random_state=42
+    )
     model.fit(X_train, y_train)
 
     return model
@@ -104,7 +109,11 @@ def step_train_model(
     execution_queue="default",
     packages=PIPELINE_PACKAGES,
 )
-def step_evaluate_model(model: object, X_test: pd.DataFrame, y_test: pd.Series):
+def step_evaluate_model(
+    model: object, 
+    X_test: pd.DataFrame, 
+    y_test: pd.Series
+):
     from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
     from clearml import Task
 
@@ -119,23 +128,19 @@ def step_evaluate_model(model: object, X_test: pd.DataFrame, y_test: pd.Series):
     # print(f"Classification Report:\n{report}")
 
     task = Task.current_task()
-    logger = task.get_logger() if task else None
+    logger = task.get_logger()
 
-    if logger:
-        logger.report_scalar(title="Metrics", series="Accuracy", value=acc, iteration=1)
-
-        logger.report_single_value(name="Accuracy", value=acc)
-
-        logger.report_confusion_matrix(
-            title="Model Performance",
-            series="Confusion Matrix",
-            matrix=cm,
-            iteration=1,
-            xaxis="Predicted",
-            yaxis="Actual",
-        )
-
-        logger.report_text(f"Classification Report:\n{report}")
+    logger.report_scalar(title="Metrics", series="Accuracy", value=acc, iteration=1)
+    logger.report_single_value(name="Accuracy", value=acc)
+    logger.report_confusion_matrix(
+        title="Model Performance",
+        series="Confusion Matrix",
+        matrix=cm,
+        iteration=1,
+        xaxis="Predicted",
+        yaxis="Actual",
+    )
+    logger.report_text(f"Classification Report:\n{report}")
 
     return acc
 
@@ -185,7 +190,11 @@ def step_deploy_model(model, accuracy, min_threshold: float, version: str = "lat
     project="Telco_Churn",
     version="2.0.1",
 )
-def run_pipeline(dataset_local_path, min_accuracy_threshold=0.75, rf_n_estimators=100):
+def run_pipeline(
+    dataset_local_path: str,
+    min_accuracy_threshold: float = 0.78,
+    rf_n_estimators: int = 150,
+):
     X_train, X_test, y_train, y_test = step_process_data(
         dataset_project="Telco_Churn",
         dataset_name="Customer_Churn_Raw",
@@ -193,12 +202,18 @@ def run_pipeline(dataset_local_path, min_accuracy_threshold=0.75, rf_n_estimator
     )
 
     model = step_train_model(
-        X_train=X_train, y_train=y_train, n_estimators=rf_n_estimators
+        X_train=X_train, 
+        y_train=y_train, 
+        n_estimators=rf_n_estimators
     )
 
-    accuracy = step_evaluate_model(model=model, X_test=X_test, y_test=y_test)
+    accuracy = step_evaluate_model(
+        model=model, 
+        X_test=X_test, 
+        y_test=y_test
+    )
 
-    status = step_deploy_model(
+    step_deploy_model(
         model=model,
         accuracy=accuracy,
         min_threshold=min_accuracy_threshold,
@@ -207,16 +222,8 @@ def run_pipeline(dataset_local_path, min_accuracy_threshold=0.75, rf_n_estimator
 
 
 if __name__ == "__main__":
-    # 1. Сначала отладка локально (можно закомментировать после проверки)
+    # Запуск пайплайна локально (для отладки)
     # PipelineDecorator.run_locally()
-
-    # 2. Абсолютный путь для локального запуска может не сработать на агенте,
-    # если агент на другой машине. Но если агент локальный - ок.
-    # Лучше использовать относительный путь или Dataset API (который у тебя уже есть внутри шага).
-
-    # Мы передаем путь None, чтобы логика внутри шага step_process_data
-    # попыталась стянуть датасет из ClearML, если он там есть.
-    import os
 
     abs_data_path = os.path.abspath("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
 
