@@ -9,7 +9,7 @@ load_dotenv()
 # Желательно брать успешную задачу из "архива" или последнюю успешную.
 # Можно искать по имени:
 base_task = Task.get_task(
-    project_name="Telco_Churn", 
+    project_name="Telco_Churn",
     task_name="Churn Automation Pipeline",
     # task_filter={'status': ['completed']} # Берем только успешно завершенную
 )
@@ -42,10 +42,9 @@ trigger.add_dataset_trigger(
     name="Trigger on new data tag",
     schedule_task_id=base_task.id,
     schedule_queue="default",
-
     trigger_project="Telco_Churn",
     trigger_name="Customer_Churn_Raw",
-    trigger_on_tags=["new_data"]   # ✅ РАБОТАЕТ С ВЕРСИЯМИ
+    trigger_on_tags=["new_data"],  # ✅ РАБОТАЕТ С ВЕРСИЯМИ
 )
 
 

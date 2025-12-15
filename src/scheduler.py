@@ -25,12 +25,11 @@ sched = TaskScheduler(
 #     execute_immediately=False
 # )
 
-sched.add_task(schedule_task_id=task.id, queue='default', minute=5)
+sched.add_task(schedule_task_id=task.id, queue="default", minute=5)
 
 scheduler = TaskScheduler(
     sync_frequency_minutes=0.5  # как часто проверять расписание
 )
-
 
 
 # Запускаем сам планировщик (он будет блокировать выполнение)
