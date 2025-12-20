@@ -19,45 +19,37 @@ with open("requirements.txt", "r") as f:
 def step_process_data(
     dataset_project: str,
     dataset_name: str,
-    local_path: str = None,
+    csv_filename: str,
     test_size: float = 0.2,
     random_state: int = 42,
 ):
     import pandas as pd
+    import os
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import LabelEncoder
     from clearml import Dataset
-    import os
 
-    # ЛОГИКА РАБОТЫ С ДАННЫМИ:
-    # Пытаемся получить датасет из ClearML. Если нет - создаем из локального файла.
+    print(f"Retrieving dataset: {dataset_project}/{dataset_name}...")
+
+    # Если датасета нет, pipeline должен упасть здесь с понятной ошибкой,
     try:
-        # Пытаемся найти последнюю версию датасета
-        dataset = Dataset.get(
-            dataset_project=dataset_project, dataset_name=dataset_name
+        dataset_obj = Dataset.get(
+            dataset_project=dataset_project, 
+            dataset_name=dataset_name,
         )
-        dataset_path = dataset.get_local_copy()
-        print(f"Using cached dataset from: {dataset_path}")
-        # Предполагаем, что имя файла стандартное, либо ищем csv
-        csv_file = [f for f in os.listdir(dataset_path) if f.endswith(".csv")][0]
-        full_path = os.path.join(dataset_path, csv_file)
+        
+        local_folder = dataset_obj.get_local_copy()
+        print(f"Dataset downloaded to: {local_folder}")
+        
     except ValueError:
-        if local_path and os.path.exists(local_path):
-            print(
-                f"Dataset not found in ClearML. Creating new version from {local_path}..."
-            )
-            dataset = Dataset.create(
-                dataset_project=dataset_project, dataset_name=dataset_name
-            )
-            dataset.add_files(local_path)
-            dataset.upload()
-            dataset.finalize()
-            full_path = local_path
-        else:
-            raise FileNotFoundError(
-                "Dataset not found in ClearML and no local path provided!"
-            )
+        raise ValueError(
+            f"Dataset '{dataset_name}' in project '{dataset_project}' not found! "
+            "Please run 'src/upload_data_example.py' first to upload the raw data."
+        )
 
+    full_path = os.path.join(local_folder, csv_filename)
+    
+    print(f"Processing file: {full_path}")
     df = pd.read_csv(full_path)
 
     # Предобработка
@@ -74,6 +66,7 @@ def step_process_data(
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=test_size, random_state=random_state
     )
+    print(f"Data processed. Train shape: {X_train.shape}, Test shape: {X_test.shape}")
 
     return X_train, X_test, y_train, y_test
 
@@ -191,14 +184,13 @@ def step_deploy_model(model, accuracy, min_threshold: float, version: str = "lat
     version="2.0.1",
 )
 def run_pipeline(
-    dataset_local_path: str,
     min_accuracy_threshold: float = 0.78,
     rf_n_estimators: int = 150,
 ):
     X_train, X_test, y_train, y_test = step_process_data(
         dataset_project="Telco_Churn",
         dataset_name="Customer_Churn_Raw",
-        local_path=dataset_local_path,
+        csv_filename="WA_Fn-UseC_-Telco-Customer-Churn.csv",
     )
 
     model = step_train_model(
@@ -225,10 +217,9 @@ if __name__ == "__main__":
     # Запуск пайплайна локально (для отладки)
     # PipelineDecorator.run_locally()
 
-    abs_data_path = os.path.abspath("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
+    # abs_data_path = os.path.abspath("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
 
     pipeline_obj = run_pipeline(
-        dataset_local_path=abs_data_path,
         rf_n_estimators=150,
         min_accuracy_threshold=0.78,
     )
