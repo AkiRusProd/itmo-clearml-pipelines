@@ -1,0 +1,15 @@
+dataset:
+  project: "Telco_Churn"
+  name: "Customer_Churn_Raw"
+  filename: "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+  test_size: 0.2
+  random_state: 42
+
+model:
+  type: "RandomForestClassifier"
+  n_estimators: 150
+  random_state: 42
+
+deploy:
+  min_accuracy_threshold: 0.78
+  version: "v2.0_prod"
