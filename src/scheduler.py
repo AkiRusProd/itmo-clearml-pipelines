@@ -11,7 +11,7 @@ task = Task.get_task(project_name="Telco_Churn", task_name="Churn Automation Pip
 
 # Scheduler — сам «cron-движок»
 sched = TaskScheduler(
-    sync_frequency_minutes=1.0  # как часто синхронизировать расписание
+    sync_frequency_minutes=0.5  # как часто синхронизировать расписание
 )
 
 # Добавляем задачу в расписание
@@ -26,11 +26,6 @@ sched = TaskScheduler(
 # )
 
 sched.add_task(schedule_task_id=task.id, queue="default", minute=5)
-
-scheduler = TaskScheduler(
-    sync_frequency_minutes=0.5  # как часто проверять расписание
-)
-
 
 # Запускаем сам планировщик (он будет блокировать выполнение)
 sched.start()

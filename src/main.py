@@ -192,5 +192,6 @@ def run_pipeline(pipeline_settings: dict = LOCAL_CONFIG):
 
 
 if __name__ == "__main__":
+    # PipelineDecorator.run_locally() # Running locally for testing without agents
     run_pipeline()
     print("Pipeline submitted to queue 'default'. Check ClearML Dashboard!")
