@@ -1,12 +1,5 @@
-import os
-import sys
-
 from dotenv import load_dotenv
 from clearml import Task, PipelineDecorator
-
-# current_dir = os.path.dirname(os.path.abspath(__file__))
-# sys.path.append(current_dir)
-# print(f"Added to sys.path: {current_dir}")
 
 from utils.config_loader import PIPELINE_PACKAGES, LOCAL_CONFIG
 
