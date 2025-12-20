@@ -11,5 +11,5 @@ model:
   random_state: 42
 
 deploy:
-  min_accuracy_threshold: 0.78
+  min_f1_threshold: 0.5
   version: "v2.0_prod"

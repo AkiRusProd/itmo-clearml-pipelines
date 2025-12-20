@@ -73,7 +73,8 @@ def step_train_model(X_train, y_train, model_config: dict):
     
     model = RandomForestClassifier(
         n_estimators=model_config['n_estimators'],
-        random_state=model_config['random_state']
+        random_state=model_config['random_state'],
+        class_weight='balanced' 
     )
     model.fit(X_train, y_train)
 
@@ -81,31 +82,34 @@ def step_train_model(X_train, y_train, model_config: dict):
 
 
 @PipelineDecorator.component(
-    return_values=["accuracy"],
+    return_values=["f1_score"],
     cache=False,
     task_type=Task.TaskTypes.qc,
     execution_queue="default",
     packages=PIPELINE_PACKAGES,
 )
 def step_evaluate_model(model, X_test, y_test):
-    from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+    from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
     from clearml import Task
 
     print("Evaluating model...")
     y_pred = model.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
     cm = confusion_matrix(y_test, y_pred)
     report = classification_report(y_test, y_pred)
 
-    print(f"Accuracy calculated: {acc:.4f}")
+    print(f"Metrics -> Accuracy: {acc:.4f}, F1-Score: {f1:.4f}")
     print(f"Confusion Matrix:\n{cm}")
-    # print(f"Classification Report:\n{report}")
     
     # Логирование в ClearML
     task = Task.current_task()
     logger = task.get_logger()
+    
+    logger.report_scalar(title="Metrics", series="F1_Score", value=f1, iteration=1)
     logger.report_scalar(title="Metrics", series="Accuracy", value=acc, iteration=1)
-    logger.report_single_value(name="Accuracy", value=acc)
+    logger.report_single_value(name="F1_Score", value=f1)
+    
     logger.report_confusion_matrix(
         title="Model Performance",
         series="Confusion Matrix",
@@ -116,7 +120,7 @@ def step_evaluate_model(model, X_test, y_test):
     )
     logger.report_text(f"Classification Report:\n{report}")
 
-    return acc
+    return f1
 
 
 @PipelineDecorator.component(
@@ -126,22 +130,22 @@ def step_evaluate_model(model, X_test, y_test):
     execution_queue="default",
     packages=PIPELINE_PACKAGES,
 )
-def step_deploy_model(model, accuracy, deploy_config: dict):
+def step_deploy_model(model, metric_value, deploy_config: dict):
     import os
     import joblib
 
-    min_threshold = deploy_config["min_accuracy_threshold"]
+    min_threshold = deploy_config["min_f1_threshold"]
     version = deploy_config["version"]
 
-    if isinstance(accuracy, (list, tuple)):
-        accuracy = accuracy[0]
+    if isinstance(metric_value, (list, tuple)):
+        metric_value = metric_value[0]
 
     print(
-        f"Checking deployment condition: Accuracy {accuracy:.4f} >= Threshold {min_threshold}"
+        f"Checking deployment condition: F1-Score {metric_value:.4f} >= Threshold {min_threshold}"
     )
 
-    if accuracy < min_threshold:
-        msg = f"DEPLOYMENT SKIPPED: Accuracy ({accuracy:.4f}) is below threshold ({min_threshold})"
+    if metric_value < min_threshold:
+        msg = f"DEPLOYMENT SKIPPED: F1-Score ({metric_value:.4f}) is below threshold ({min_threshold})"
         print(msg)
         return msg
 
@@ -156,7 +160,6 @@ def step_deploy_model(model, accuracy, deploy_config: dict):
     print(f"Model serialized to production path: {os.path.abspath(model_file)}")
 
     from clearml import Task
-
     Task.current_task().upload_artifact(name="production_model", artifact_object=model)
 
     return "Deployed Success"
@@ -165,7 +168,7 @@ def step_deploy_model(model, accuracy, deploy_config: dict):
 @PipelineDecorator.pipeline(
     name="Churn Automation Pipeline",
     project="Telco_Churn",
-    version="3.0",
+    version="3.1",
 )
 def run_pipeline(pipeline_settings: dict = LOCAL_CONFIG):
     X_train, X_test, y_train, y_test = step_process_data(
@@ -178,7 +181,7 @@ def run_pipeline(pipeline_settings: dict = LOCAL_CONFIG):
         model_config=pipeline_settings["model"]
     )
 
-    accuracy = step_evaluate_model(
+    f1_score_val = step_evaluate_model(
         model=model, 
         X_test=X_test, 
         y_test=y_test
@@ -186,7 +189,7 @@ def run_pipeline(pipeline_settings: dict = LOCAL_CONFIG):
 
     step_deploy_model(
         model=model,
-        accuracy=accuracy,
+        metric_value=f1_score_val,
         deploy_config=pipeline_settings["deploy"]
     )
 
