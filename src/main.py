@@ -1,27 +1,16 @@
-import pandas as pd
 import os
-import yaml
+import sys
+
 from dotenv import load_dotenv
 from clearml import Task, PipelineDecorator
 
+# current_dir = os.path.dirname(os.path.abspath(__file__))
+# sys.path.append(current_dir)
+# print(f"Added to sys.path: {current_dir}")
+
+from utils.config_loader import PIPELINE_PACKAGES, LOCAL_CONFIG
+
 load_dotenv()
-
-with open("requirements.txt", "r") as f:
-    PIPELINE_PACKAGES = list(filter(None, f.read().splitlines()))
-
-def load_yaml_config(path: str = "config.yaml") -> dict:
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Configuration file not found at: {path}")
-    with open(path, "r") as f:
-        config = yaml.safe_load(f)
-    print(f"Loaded configuration from {path}")
-    return config
-
-try:
-    LOCAL_CONFIG = load_yaml_config("config.yaml")
-except Exception as e:
-    print(f"Warning: Could not load config.yaml ({e}). Using empty dict.")
-    LOCAL_CONFIG = {}
 
 
 @PipelineDecorator.component(
