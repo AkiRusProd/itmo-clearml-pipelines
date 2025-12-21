@@ -89,36 +89,109 @@ def step_train_model(X_train, y_train, model_config: dict):
     packages=PIPELINE_PACKAGES,
 )
 def step_evaluate_model(model, X_test, y_test):
-    from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from sklearn.metrics import (
+        accuracy_score, f1_score, precision_score, recall_score, 
+        roc_auc_score, confusion_matrix, classification_report, 
+        roc_curve, precision_recall_curve
+    )
     from clearml import Task
 
     print("Evaluating model...")
+    
+    # 1. Получаем предсказания классов и вероятностей
     y_pred = model.predict(X_test)
+    y_proba = model.predict_proba(X_test)[:, 1]  # Вероятность класса 1 (Churn)
+
+    # 2. Считаем скалярные метрики
     acc = accuracy_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred)
-    cm = confusion_matrix(y_test, y_pred)
-    report = classification_report(y_test, y_pred)
-
-    print(f"Metrics -> Accuracy: {acc:.4f}, F1-Score: {f1:.4f}")
-    print(f"Confusion Matrix:\n{cm}")
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    roc_auc = roc_auc_score(y_test, y_proba)
     
-    # Логирование в ClearML
+    print(f"Metrics -> Accuracy: {acc:.4f}, F1: {f1:.4f}, ROC-AUC: {roc_auc:.4f}")
+
+    # 3. Логируем скаляры в ClearML
     task = Task.current_task()
     logger = task.get_logger()
     
-    logger.report_scalar(title="Metrics", series="F1_Score", value=f1, iteration=1)
-    logger.report_scalar(title="Metrics", series="Accuracy", value=acc, iteration=1)
+    # Сводная таблица метрик (Scalars)
+    logger.report_scalar("Metrics", "F1_Score", f1, iteration=1)
+    logger.report_scalar("Metrics", "Accuracy", acc, iteration=1)
+    logger.report_scalar("Metrics", "Precision", precision, iteration=1)
+    logger.report_scalar("Metrics", "Recall", recall, iteration=1)
+    logger.report_scalar("Metrics", "ROC_AUC", roc_auc, iteration=1)
+
+    # Single Value для сравнения экспериментов в таблице
     logger.report_single_value(name="F1_Score", value=f1)
-    
+    logger.report_single_value(name="ROC_AUC", value=roc_auc)
+
+    # 4. Confusion Matrix (Интерактивная в ClearML)
+    class_names = ["No Churn", "Churn"]
+
+    cm = confusion_matrix(y_test, y_pred)
+    print(f"Confusion Matrix:\n{cm}")
     logger.report_confusion_matrix(
         title="Model Performance",
         series="Confusion Matrix",
         matrix=cm,
         iteration=1,
-        xaxis="Predicted",
-        yaxis="Actual",
+        xaxis="Predicted class",
+        yaxis="True class",
+        xlabels=class_names,
+        ylabels=class_names
     )
+    
+    # 5. Classification Report (Текст)
+    report = classification_report(y_test, y_pred)
     logger.report_text(f"Classification Report:\n{report}")
+
+    # 6. ROC Curve Plot
+    fpr, tpr, _ = roc_curve(y_test, y_proba)
+    plt.figure(figsize=(10, 6))
+    plt.plot(fpr, tpr, label=f'ROC Curve (AUC = {roc_auc:.2f})', color='darkorange', lw=2)
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic (ROC)')
+    plt.legend(loc="lower right")
+    plt.grid(True)
+    # Логируем фигуру напрямую
+    logger.report_matplotlib_figure(title="Performance Plots", series="ROC Curve", figure=plt)
+    plt.close()
+
+    # 7. Precision-Recall Curve Plot
+    prec, rec, _ = precision_recall_curve(y_test, y_proba)
+    plt.figure(figsize=(10, 6))
+    plt.plot(rec, prec, label=f'F1 Score = {f1:.2f}', color='blue', lw=2)
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.legend(loc="best")
+    plt.grid(True)
+    logger.report_matplotlib_figure(title="Performance Plots", series="PR Curve", figure=plt)
+    plt.close()
+
+    # 8. Feature Importance Plot
+    # Проверяем, есть ли у модели feature_importances_ (для деревьев)
+    if hasattr(model, "feature_importances_"):
+        plt.figure(figsize=(10, 8))
+        features = X_test.columns.tolist()
+        importances = model.feature_importances_
+        indices = np.argsort(importances)
+        plt.title("Feature Importances")
+        plt.barh(range(len(indices)), importances[indices], color="b", align="center")
+        plt.yticks(range(len(indices)), [features[i] for i in indices])
+        plt.xlabel("Relative Importance")
+
+        if logger:
+            logger.report_matplotlib_figure(
+                title="Feature Importance", series="Top Features", figure=plt
+            )
+        plt.close()
+        
 
     return f1
 
